@@ -1,0 +1,345 @@
+<div class="ops-control-plane">
+  <style>
+    /* --- SCOPED VARIABLES --- */
+    .ops-control-plane {
+      --cp-bg: #0f172a; /* Slate 900 */
+      --cp-surface: #1e293b; /* Slate 800 */
+      --cp-surface-hover: #334155;
+      --cp-border: rgba(148, 163, 184, 0.15);
+      
+      --cp-brand: #3b82f6; /* Blue 500 */
+      --cp-success: #10b981; /* Emerald 500 */
+      --cp-warning: #f59e0b; /* Amber 500 */
+      --cp-danger: #ef4444; /* Red 500 */
+      --cp-text-main: #f8fafc;
+      --cp-text-muted: #94a3b8;
+      
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--cp-bg); color: var(--cp-text-main);
+      max-width: 1200px; margin: 2rem auto; border-radius: 12px;
+      overflow: hidden; border: 1px solid var(--cp-border);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      line-height: 1.5;
+    }
+    .ops-control-plane * { box-sizing: border-box; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+    /* --- UTILS --- */
+    .cp-pad { padding: 3.5rem 2.5rem; }
+    .cp-flex-between { display: flex; justify-content: space-between; align-items: flex-start; }
+    .cp-tag { 
+      font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+      padding: 4px 10px; border-radius: 4px; background: rgba(59, 130, 246, 0.1); color: var(--cp-brand);
+      border: 1px solid rgba(59, 130, 246, 0.2); display: inline-block; margin-bottom: 1rem;
+    }
+    
+    /* --- 1. HERO: THE LIVE MONITOR --- */
+    .cp-hero {
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.5) 0%, var(--cp-bg) 100%);
+      border-bottom: 1px solid var(--cp-border); position: relative;
+    }
+    
+    /* Simulated Live Graph Background */
+    .hero-graph-bg {
+      position: absolute; bottom: 0; left: 0; width: 100%; height: 100px; opacity: 0.1;
+      background: repeating-linear-gradient(90deg, transparent, transparent 19px, var(--cp-brand) 20px);
+      mask-image: linear-gradient(to bottom, transparent, black); -webkit-mask-image: linear-gradient(to bottom, transparent, black);
+    }
+    
+    .hero-content h1 { font-size: 3rem; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 1rem 0; line-height: 1.1; }
+    .hero-content p { font-size: 1.125rem; color: var(--cp-text-muted); max-width: 650px; margin-bottom: 2.5rem; }
+    
+    .hero-status-pill {
+      display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+      background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 50px; color: var(--cp-success); font-family: monospace; font-size: 0.85rem;
+    }
+    .pulse-dot { width: 8px; height: 8px; background: currentColor; border-radius: 50%; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); animation: pulse-green 2s infinite; }
+    @keyframes pulse-green { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+
+    /* --- 2. SERVICE TOPOLOGY MAP (INTERACTIVE) --- */
+    .topology-section { background: var(--cp-bg); position: relative; overflow: hidden; }
+    
+    .topology-grid {
+      display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 40px; align-items: center;
+      position: relative; z-index: 2;
+    }
+    
+    /* Central Hub */
+    .hub-node {
+      background: var(--cp-surface); border: 2px solid var(--cp-brand); border-radius: 12px;
+      padding: 2rem; text-align: center; position: relative; box-shadow: 0 0 40px rgba(59, 130, 246, 0.15);
+      z-index: 10;
+    }
+    .hub-icon { font-size: 3rem; margin-bottom: 0.5rem; display: block; }
+    .hub-label { font-weight: 700; color: #fff; font-size: 1.1rem; }
+    
+    /* Satellite Nodes (Left/Right) */
+    .sat-col { display: flex; flex-direction: column; gap: 20px; }
+    
+    .sat-node {
+      background: var(--cp-surface); padding: 1.25rem; border-radius: 8px;
+      border: 1px solid var(--cp-border); cursor: default; position: relative;
+      transition: 0.2s; display: flex; align-items: center; gap: 15px;
+    }
+    .sat-node:hover {
+      border-color: var(--cp-brand); transform: translateX(5px);
+      background: var(--cp-surface-hover);
+    }
+    /* Connection Line Logic (Pseudo-elements) */
+    .sat-left .sat-node::after {
+      content: ''; position: absolute; right: -40px; top: 50%; width: 40px; height: 1px;
+      background: var(--cp-border); transition: 0.3s;
+    }
+    .sat-left .sat-node:hover::after { background: var(--cp-brand); box-shadow: 0 0 5px var(--cp-brand); }
+    
+    .sat-right .sat-node::before {
+      content: ''; position: absolute; left: -40px; top: 50%; width: 40px; height: 1px;
+      background: var(--cp-border); transition: 0.3s;
+    }
+    .sat-right .sat-node:hover::before { background: var(--cp-brand); box-shadow: 0 0 5px var(--cp-brand); }
+
+    .sat-icon { 
+      width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 6px;
+      display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+    }
+    .sat-info h4 { margin: 0; font-size: 0.95rem; color: #fff; }
+    .sat-info p { margin: 2px 0 0 0; font-size: 0.8rem; color: var(--cp-text-muted); }
+
+    /* --- 3. CHAOS VS ORDER (SLIDER COMPARISON) --- */
+    .compare-section { background: #0b101b; text-align: center; }
+    
+    .compare-container {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
+      background: var(--cp-border); border-radius: 12px; overflow: hidden;
+      margin-top: 2rem; max-width: 900px; margin-left: auto; margin-right: auto;
+    }
+    
+    .state-card { padding: 3rem 2rem; position: relative; transition: 0.4s; }
+    
+    /* Unmanaged State */
+    .state-chaos { background: rgba(239, 68, 68, 0.05); }
+    .state-chaos:hover { background: rgba(239, 68, 68, 0.1); }
+    .state-chaos h3 { color: var(--cp-danger); margin-bottom: 1rem; }
+    .status-item.bad { color: var(--cp-danger); display: flex; align-items: center; gap: 10px; margin-bottom: 10px; opacity: 0.8; }
+    .status-item.bad::before { content: '⚠️'; }
+    
+    /* Managed State */
+    .state-order { background: rgba(16, 185, 129, 0.05); }
+    .state-order:hover { background: rgba(16, 185, 129, 0.1); }
+    .state-order h3 { color: var(--cp-success); margin-bottom: 1rem; }
+    .status-item.good { color: var(--cp-success); display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-weight: 500; }
+    .status-item.good::before { content: '✓'; }
+
+    /* --- 4. KPIs (CIRCULAR PROGRESS) --- */
+    .kpi-section { background: var(--cp-surface); border-top: 1px solid var(--cp-border); }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; }
+    
+    .kpi-module {
+      text-align: center; padding: 1.5rem; background: var(--cp-bg); border-radius: 12px;
+      border: 1px solid var(--cp-border);
+    }
+    .circle-chart {
+      width: 100px; height: 100px; border-radius: 50%; margin: 0 auto 1rem;
+      background: conic-gradient(var(--kpi-color) var(--pct), rgba(255,255,255,0.05) 0);
+      display: flex; align-items: center; justify-content: center; position: relative;
+    }
+    .circle-chart::after {
+      content: ''; position: absolute; width: 85%; height: 85%; background: var(--cp-bg); border-radius: 50%;
+    }
+    .circle-val { position: relative; z-index: 2; font-weight: 800; font-size: 1.5rem; color: #fff; }
+    .kpi-label { font-size: 0.85rem; color: var(--cp-text-muted); font-weight: 600; }
+
+    /* --- 5. LOG FILE (CASE STUDIES) --- */
+    .logs-section { background: var(--cp-bg); }
+    .log-terminal {
+      font-family: 'Consolas', 'Monaco', monospace; background: #000; border-radius: 8px;
+      border: 1px solid #333; padding: 2rem; position: relative;
+    }
+    .log-header { 
+      border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 20px;
+      display: flex; gap: 15px; color: #666; font-size: 0.8rem;
+    }
+    
+    .log-entry { margin-bottom: 15px; padding-left: 15px; border-left: 2px solid transparent; }
+    
+    /* AlphaCorp */
+    .log-entry.success { border-left-color: var(--cp-success); }
+    .ts { color: #555; font-size: 0.8rem; margin-right: 10px; }
+    .cmd { color: var(--cp-brand); margin-right: 10px; }
+    .res { color: var(--cp-text-main); }
+    .res-val { color: var(--cp-success); font-weight: bold; }
+    
+    /* BetaLLC */
+    .log-entry.fail { border-left-color: var(--cp-danger); opacity: 0.7; }
+    .res-err { color: var(--cp-danger); font-weight: bold; }
+
+    /* --- CTA --- */
+    .cp-cta { text-align: center; border-top: 1px solid var(--cp-border); }
+    .btn-solid {
+      background: var(--cp-text-main); color: var(--cp-bg); padding: 14px 32px;
+      border-radius: 6px; font-weight: 700; text-decoration: none; display: inline-block;
+      transition: transform 0.2s;
+    }
+    .btn-solid:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(255,255,255,0.1); }
+
+    @media (max-width: 900px) {
+      .topology-grid { grid-template-columns: 1fr; display: flex; flex-direction: column; }
+      .sat-left .sat-node::after, .sat-right .sat-node::before { display: none; }
+      .compare-container { grid-template-columns: 1fr; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+
+  <header class="cp-pad cp-hero">
+    <div class="hero-graph-bg"></div>
+    <div class="cp-flex-between" style="align-items: center; position: relative; z-index: 2; flex-wrap: wrap; gap: 20px;">
+      <div class="hero-content">
+        <span class="cp-tag">Managed M365 & Cloud Support</span>
+        <h1>Operational Resilience<br>as a Service.</h1>
+        <p>Operational stability, predictable costs, and expert ownership. We handle the noise so your IT team can focus on strategy.</p>
+        <div class="hero-status-pill">
+          <div class="pulse-dot"></div>
+          SYSTEM HEALTH: 100% OPTIMIZED
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="cp-pad topology-section">
+    <div class="topology-grid">
+      
+      <div class="sat-col sat-left">
+        <div class="sat-node">
+          <div class="sat-icon">🎧</div>
+          <div class="sat-info">
+            <h4>Tier 1-2 Support</h4>
+            <p>Single POC • 24/7 SLA</p>
+          </div>
+        </div>
+        <div class="sat-node">
+          <div class="sat-icon">💾</div>
+          <div class="sat-info">
+            <h4>Backup & Recovery</h4>
+            <p>Ransomware Rollback • Testing</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="hub-node">
+        <span class="hub-icon">🏢</span>
+        <div class="hub-label">YOUR TENANT</div>
+        <div style="font-size:0.8rem; color:var(--cp-text-muted); margin-top:5px;">Zero Trust Perimeter Enforced</div>
+      </div>
+
+      <div class="sat-col sat-right">
+        <div class="sat-node">
+          <div class="sat-icon">🛡️</div>
+          <div class="sat-info">
+            <h4>Patch Hygiene</h4>
+            <p>OS Updates • Vuln Scanning</p>
+          </div>
+        </div>
+        <div class="sat-node">
+          <div class="sat-icon">👁️</div>
+          <div class="sat-info">
+            <h4>Proactive Monitor</h4>
+            <p>Health Alerts • Self-Healing</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="cp-pad compare-section">
+    <h2 style="font-size: 2rem; margin-bottom: 1rem;">The Value of Ownership</h2>
+    <p style="color:var(--cp-text-muted);">See the difference between reactive firefighting and managed operations.</p>
+    
+    <div class="compare-container">
+      <div class="state-card state-chaos">
+        <h3>Unmanaged Chaos</h3>
+        <div class="status-item bad">Reactive Firefighting</div>
+        <div class="status-item bad">Missed Patches</div>
+        <div class="status-item bad">Data Loss Risk</div>
+        <div class="status-item bad">Unpredictable Costs</div>
+      </div>
+      
+      <div class="state-card state-order">
+        <h3>Managed Control</h3>
+        <div class="status-item good">Proactive Monitoring</div>
+        <div class="status-item good">100% Compliance</div>
+        <div class="status-item good">Verified Backups</div>
+        <div class="status-item good">Flat Monthly Rate</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cp-pad kpi-section">
+    <div class="kpi-grid">
+      <div class="kpi-module">
+        <div class="circle-chart" style="--pct: 40%; --kpi-color: var(--cp-brand);">
+          <span class="circle-val">-40%</span>
+        </div>
+        <div class="kpi-label">Reduced MTTR</div>
+      </div>
+      
+      <div class="kpi-module">
+        <div class="circle-chart" style="--pct: 99%; --kpi-color: var(--cp-success);">
+          <span class="circle-val">99%</span>
+        </div>
+        <div class="kpi-label">Patch Compliance</div>
+      </div>
+      
+      <div class="kpi-module">
+        <div class="circle-chart" style="--pct: 100%; --kpi-color: var(--cp-warning);">
+          <span class="circle-val">100%</span>
+        </div>
+        <div class="kpi-label">Backup Validation</div>
+      </div>
+      
+      <div class="kpi-module">
+        <div class="circle-chart" style="--pct: 95%; --kpi-color: #a855f7;">
+          <span class="circle-val">High</span>
+        </div>
+        <div class="kpi-label">User CSAT Score</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cp-pad logs-section">
+    <h2 style="margin-bottom: 2rem;">Operational Logs</h2>
+    <div class="log-terminal">
+      <div class="log-header">
+        <span>user: admin</span>
+        <span>/var/logs/ops-report</span>
+        <span>status: readonly</span>
+      </div>
+      
+      <div class="log-entry success">
+        <span class="ts">[2024-10-01 09:00]</span>
+        <span class="cmd">Target:</span> AlphaCorp (3k Users)
+        <br>
+        <span class="res">>> Action: Migrated to Managed Ops.</span>
+        <br>
+        <span class="res">>> Outcome: Internal IT freed for strategy. <span class="res-val">MTTR -40%</span>.</span>
+      </div>
+      
+      <div class="log-entry fail">
+        <span class="ts">[2024-09-15 03:00]</span>
+        <span class="cmd">Target:</span> BetaLLC (SMB)
+        <br>
+        <span class="res">>> Action: Relied on best-effort.</span>
+        <br>
+        <span class="res">>> Error: Missed patch cycle. <span class="res-err">CRITICAL: Ransomware Incident.</span></span>
+      </div>
+    </div>
+  </section>
+
+  <footer class="cp-pad cp-cta">
+    <div style="max-width: 600px; margin: 0 auto;">
+      <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Stabilize Your Core.</h2>
+      <p style="margin-bottom: 2rem; color: var(--cp-text-muted);">Don't wait for the next outage. Secure your operations today.</p>
+      <a href="#" class="btn-solid">Initialize Support</a>
+    </div>
+  </footer>
+</div>
